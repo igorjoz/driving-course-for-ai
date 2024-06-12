@@ -1,0 +1,41 @@
+{
+    "mapRandomizationData": {
+        "RandomizeEveryEpisode": true,
+        "MinFreeSpaces": 3
+    },
+    "carRandomizationData": {
+        "RandomizeRotation": true,
+        "MinAngle": -110.0,
+        "MaxAngle": 110.0
+    },
+    "basicData": {
+        "MaxGenerationTime": 90.0,
+        "ExceededMaxGenerationTimeReward": -3.5,
+        "RewardPerDeltaTime": -0.005
+    },
+    "availableParkingSpaceData": {
+        "OnEnterReward": 6.0,
+        "OnExitReward": -6.0,
+        "OnStay_MinimumTimeToStop": 3.0,
+        "OnStay_MaximumSpeedtoStop": 0.1,
+        "OnStay_StopBaseReward": 5.0,
+        "OnStay_StopCoverageMultiplier": 9.0,
+        "OnStay_StopSpeedMultiplier": -3.0,
+        "OnStay_MovingReward": 0.005
+    },
+    "occupiedParkingSpaceData": {
+        "OnCollisionReward": -1.0,
+        "OnCollision_SpeedMultiplier": -1.2
+    },
+    "areaData": {
+        "ParkingArea_OnEnterReward": 4.0,
+        "ParkingArea_OnExit_BaseReward": -4.0,
+        "ParkingArea_OnExit_SpeedMultiplier": -1.5,
+        "NearParkingSpaceArea_OnEnterReward": 0.0,
+        "NearParkingSpaceArea_OnExitReward": -0.0
+    },
+    "fenceData": {
+        "OnCollision_BaseReward": -3.0,
+        "OnCollision_SpeedMultiplier": -2.0
+    }
+}
