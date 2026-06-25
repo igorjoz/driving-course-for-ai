@@ -40,24 +40,38 @@ Full documentation is available in [`docs/index.md`](docs/index.md).
 
 ## Training
 
-Install the ML-Agents CLI in a Python environment:
+Use Python 3.9 for the ML-Agents trainer. This project uses Unity ML-Agents `2.0.1`, which matches the Python package `mlagents==0.30.0`; that old trainer stack is fragile on newer Python versions.
 
-```bash
-python -m pip install mlagents
+```powershell
+winget install --id Python.Python.3.9 --source winget
+```
+
+Create the virtual environment from the repository root, the directory that contains `README.md`, `config/`, and `requirements-mlagents.txt`:
+
+```powershell
+& "$env:LocalAppData\Programs\Python\Python39\python.exe" -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements-mlagents.txt
 ```
 
 Start training from the repository root:
 
-```bash
-mlagents-learn config/driver_ppo.yaml --run-id driver-ppo
+```powershell
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo
 ```
 
-When ML-Agents waits for the Unity environment, open `Assets/Scenes/MainScene.unity` and enter Play Mode. Training summaries are written to `results/`.
+The trainer should print:
+
+```text
+Listening on port 5004. Start training by pressing the Play button in the Unity Editor.
+```
+
+Then open `driving-course-for-ai/Assets/Scenes/MainScene.unity` in Unity and enter Play Mode. Training summaries are written to `results/`.
 
 To monitor training in TensorBoard:
 
-```bash
-tensorboard --logdir results
+```powershell
+.\.venv\Scripts\python.exe -m tensorboard.main --logdir results
 ```
 
 Then open the local TensorBoard URL printed in the terminal.

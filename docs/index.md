@@ -36,6 +36,7 @@ Important Unity packages:
 ```text
 .
 +-- README.md
++-- requirements-mlagents.txt
 +-- config/
 |   +-- driver_ppo.yaml
 +-- docs/
@@ -134,19 +135,39 @@ During Play Mode, you can edit `AI_LearningData.json` and press `R` to reload it
 
 The repository contains a starter PPO training configuration in `config/driver_ppo.yaml`. It targets the `Driver` behavior used by the `Sedan` agent.
 
-Install the ML-Agents CLI in a Python environment:
+Use Python 3.9 for the ML-Agents trainer. This project uses Unity ML-Agents `2.0.1`, which matches the Python package `mlagents==0.30.0`. That trainer stack works reliably with Python 3.9 on Windows; Python 3.10+ can run into strict package pins and NumPy wheel issues.
 
-```bash
-python -m pip install mlagents
+```powershell
+winget install --id Python.Python.3.9 --source winget
+```
+
+Create the virtual environment from the repository root, the directory that contains `README.md`, `config/`, and `requirements-mlagents.txt`:
+
+```powershell
+& "$env:LocalAppData\Programs\Python\Python39\python.exe" -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements-mlagents.txt
 ```
 
 Start training from the repository root:
 
-```bash
-mlagents-learn config/driver_ppo.yaml --run-id driver-ppo
+```powershell
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo
 ```
 
-When the CLI waits for the Unity environment, open `Assets/Scenes/MainScene.unity` and enter Play Mode. ML-Agents will connect to the running scene and begin collecting experience.
+The trainer should print:
+
+```text
+Listening on port 5004. Start training by pressing the Play button in the Unity Editor.
+```
+
+When the CLI waits for the Unity environment, open `driving-course-for-ai/Assets/Scenes/MainScene.unity` and enter Play Mode. ML-Agents will connect to the running scene and begin collecting experience.
+
+If your terminal is inside the Unity project directory (`driving-course-for-ai/`), go back to the repository root first:
+
+```powershell
+cd ..
+```
 
 The included starter config:
 
@@ -189,8 +210,8 @@ After training, assign the exported `.onnx` model in the `Behavior Parameters` c
 
 ML-Agents writes TensorBoard summaries to the `results/` directory. Start TensorBoard from the repository root:
 
-```bash
-tensorboard --logdir results
+```powershell
+.\.venv\Scripts\python.exe -m tensorboard.main --logdir results
 ```
 
 Open the local URL printed by TensorBoard, usually `http://localhost:6006/`.
