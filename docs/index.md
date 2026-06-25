@@ -155,6 +155,19 @@ Start training from the repository root:
 .\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo
 ```
 
+ML-Agents stores run data in `results/<run-id>/`. If a directory for the same run id already exists, ML-Agents stops before training starts. Pick the command that matches what you want to do:
+
+```powershell
+# Continue the existing run
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo --resume
+
+# Start over and overwrite the existing run
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo --force
+
+# Keep the old run and create a new one
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo-2
+```
+
 The trainer should print:
 
 ```text
