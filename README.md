@@ -40,18 +40,43 @@ Full documentation is available in [`docs/index.md`](docs/index.md).
 
 ## Training
 
-Use Python `3.10` for the ML-Agents trainer; the upstream ML-Agents documentation was tested with Python `3.10.12`. This project uses Unity ML-Agents `4.0.3`, which matches the Python package `mlagents==1.1.0`. If you still have an older virtual environment from ML-Agents `0.30.0`, recreate it before training.
+Use Python `3.10.1` through `3.10.12` for the ML-Agents trainer. This project uses Unity ML-Agents `4.0.3`, which matches the Python package `mlagents==1.1.0`, and that package rejects Python versions outside `>=3.10.1, <=3.10.12`. If you still have an older virtual environment from ML-Agents `0.30.0`, recreate it before training.
+
+The requirements file also pins `torch==2.1.1` and `setuptools<81`. Do not let pip upgrade them blindly unless you also validate trainer startup and checkpoint export: newer PyTorch ONNX exporters may require extra packages such as `onnxscript`, and newer setuptools versions no longer provide `pkg_resources`, which ML-Agents `1.1.0` imports.
 
 ```powershell
-winget install --id Python.Python.3.10 --source winget
+py -0p
+py -3.10 --version
 ```
 
-Create the virtual environment from the repository root, the directory that contains `README.md`, `config/`, and `requirements-mlagents.txt`:
+Create the virtual environment from the repository root, the directory that contains `README.md`, `config/`, and `requirements-mlagents.txt`. If `py -3.10` does not select a compatible runtime, use the full Python `3.10.x` path printed by `py -0p`.
 
 ```powershell
 py -3.10 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements-mlagents.txt
+```
+
+To update an existing environment after dependency changes:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install --upgrade --force-reinstall -r requirements-mlagents.txt
+```
+
+If the environment was created for an older ML-Agents version, the cleanest fix is to delete `.venv` and recreate it with Python `3.10`. If `.venv` is currently active, run `deactivate` or close terminals/processes using it first.
+
+```powershell
+Remove-Item -Recurse -Force .venv
+py -3.10 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements-mlagents.txt
+```
+
+On Windows, if the launcher sees Python `3.10` but `py -3.10` fails, create the environment with the full executable path instead:
+
+```powershell
+& "C:\Users\<you>\AppData\Local\Programs\Python\Python310\python.exe" -m venv .venv
 ```
 
 Start training from the repository root:
