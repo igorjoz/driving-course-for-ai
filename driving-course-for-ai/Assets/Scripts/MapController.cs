@@ -29,7 +29,13 @@ public class MapController : MonoBehaviour
 
     public void Randomize()
     {
-        mapRandomizationData = GameManager.instance.driverLearningData.mapRandomizationData;
+        if(!GameManager.TryGetInstance(out var gameManager))
+        {
+            Debug.LogError($"{nameof(MapController)} requires a {nameof(GameManager)} in the scene before the map can be randomized.", this);
+            return;
+        }
+
+        mapRandomizationData = gameManager.driverLearningData.mapRandomizationData;
         int allFields = ParkFields.Length;
         
         for (int i = 0; i < allFields; i++)
@@ -80,7 +86,7 @@ public class MapController : MonoBehaviour
 
                 spawnedObjects[i].transform.position = pos;
                 spawnedObjects[i].transform.rotation = Quaternion.Euler(0.0f, 90.0f + FreeSpacePrefab.transform.rotation.y, 0.0f);
-                spawnedObjects[i].GetComponent<Rigidbody>().velocity = Vector3.zero;
+                spawnedObjects[i].GetComponent<Rigidbody>().linearVelocity = Vector3.zero;
             }
         }
     }

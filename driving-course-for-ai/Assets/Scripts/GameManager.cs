@@ -1,6 +1,7 @@
 using System.IO;
 using UnityEngine;
 
+[DefaultExecutionOrder(-1000)]
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
@@ -19,17 +20,28 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
-        if(instance == null)
+        if(instance != null && instance != this)
         {
-            instance = this;
-        }
-        else
-        {
-            Destroy(this);
+            Destroy(gameObject);
             return;
         }
 
-        DontDestroyOnLoad(this);
+        instance = this;
+        DontDestroyOnLoad(gameObject);
+        LoadDriverDataFromFile();
+    }
+
+    public static bool TryGetInstance(out GameManager gameManager)
+    {
+        if(instance == null)
+#if UNITY_2023_1_OR_NEWER
+            instance = FindFirstObjectByType<GameManager>();
+#else
+            instance = FindObjectOfType<GameManager>();
+#endif
+
+        gameManager = instance;
+        return gameManager != null;
     }
 
     private void Update()
