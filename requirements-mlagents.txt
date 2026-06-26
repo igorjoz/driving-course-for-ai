@@ -1,0 +1,2 @@
+mlagents==1.1.0
+tensorboard>=2.14

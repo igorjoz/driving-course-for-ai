@@ -38,6 +38,9 @@ public class CarController : Agent
 
     public override void OnEpisodeBegin()
     {
+        if(!EnsureRequiredReferences())
+            return;
+
         CreateNewSetup();
     }
 
@@ -71,7 +74,7 @@ public class CarController : Agent
 
     public override void CollectObservations(VectorSensor sensor)
     {
-        sensor.AddObservation(rigidbody.velocity.magnitude);
+        sensor.AddObservation(rigidbody.linearVelocity.magnitude);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -95,7 +98,7 @@ public class CarController : Agent
 
     private void OnCollisionEnter(Collision collision)
     {
-        float speed = rigidbody.velocity.magnitude / 10.0f;
+        float speed = rigidbody.linearVelocity.magnitude / 10.0f;
         switch (collision.gameObject.tag)
         {
             case "Fence":
@@ -114,7 +117,7 @@ public class CarController : Agent
         if (other.gameObject.tag == "AvailableParkingSpace")
         {
             timeInFreeField += Time.deltaTime;
-            float speed = rigidbody.velocity.magnitude / 10.0f;
+            float speed = rigidbody.linearVelocity.magnitude / 10.0f;
             if (timeInFreeField >= driverData.availableParkingSpaceData.OnStay_MinimumTimeToStop && speed < driverData.availableParkingSpaceData.OnStay_MaximumSpeedtoStop)
             {
                 var carBounds = CarCollider.bounds;
@@ -145,7 +148,7 @@ public class CarController : Agent
 
     private void OnTriggerExit(Collider other)
     {
-        float speed = rigidbody.velocity.magnitude / 10.0f;
+        float speed = rigidbody.linearVelocity.magnitude / 10.0f;
 
         switch (other.gameObject.tag)
         {
@@ -171,6 +174,9 @@ public class CarController : Agent
 
     private void FixedUpdate()
     {
+        if(driverData == null && !EnsureRequiredReferences())
+            return;
+
         HandleMotor();
         HandleSteering();
         UpdateWheels();
@@ -198,11 +204,13 @@ public class CarController : Agent
 
     private void CreateNewSetup()
     {
-        driverData = GameManager.instance.driverLearningData;
+        if(!EnsureRequiredReferences())
+            return;
+
         RandomizePosition();
         RandomizeRotation();
         StopWheelsMovement();
-        rigidbody.velocity = Vector3.zero;
+        rigidbody.linearVelocity = Vector3.zero;
 
         if(driverData.mapRandomizationData.RandomizeEveryEpisode)
         {
@@ -213,6 +221,43 @@ public class CarController : Agent
             mapController.Randomize();
             IsAlreadyGenerated = true;
         }
+    }
+
+    private bool EnsureRequiredReferences()
+    {
+        if(rigidbody == null)
+            rigidbody = GetComponent<Rigidbody>();
+
+        if(mapController == null)
+            mapController = GetComponent<MapController>();
+
+        if(!GameManager.TryGetInstance(out var gameManager))
+        {
+            Debug.LogError($"{nameof(CarController)} requires a {nameof(GameManager)} in the scene before an episode can start.", this);
+            return false;
+        }
+
+        driverData = gameManager.driverLearningData;
+
+        if(driverData == null)
+        {
+            Debug.LogError($"{nameof(GameManager)} did not load driver learning data.", gameManager);
+            return false;
+        }
+
+        if(mapController == null)
+        {
+            Debug.LogError($"{nameof(CarController)} requires a {nameof(MapController)} on the same GameObject.", this);
+            return false;
+        }
+
+        if(rigidbody == null)
+        {
+            Debug.LogError($"{nameof(CarController)} requires a {nameof(Rigidbody)} on the same GameObject.", this);
+            return false;
+        }
+
+        return true;
     }
 
     private void RandomizePosition() => transform.position = new Vector3(UnityEngine.Random.Range(PointA.position.x, PointB.position.x), transform.position.y, UnityEngine.Random.Range(PointA.position.z, PointB.position.z));

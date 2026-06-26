@@ -20,24 +20,26 @@ Authors:
 ## Requirements
 
 - Unity Hub.
-- Unity Editor `2022.3.62f2`; this is the version recorded in `ProjectSettings/ProjectVersion.txt`.
-- A platform supported by Unity 2022.3 LTS.
+- Unity Editor `6000.5.1f1`; this is the version recorded in `ProjectSettings/ProjectVersion.txt`.
+- A platform supported by Unity 6.5.
 - Internet access during the first project open, so Unity can restore packages.
 - Optional: Python and the `mlagents` CLI if you want to train the agent from ML-Agents.
 
 Important Unity packages:
 
-- `com.unity.ml-agents` `2.0.1`
-- `com.unity.barracuda` `3.0.0`, installed as an ML-Agents dependency
-- `com.unity.textmeshpro` `3.0.7`
+- `com.unity.ml-agents` `4.0.3`
+- `com.unity.ai.inference` `2.6.1`, installed as an ML-Agents dependency
+- `com.unity.ugui` `2.5.0`
 
 ## Repository Layout
 
 ```text
 .
 +-- README.md
++-- requirements-mlagents.txt
 +-- config/
 |   +-- driver_ppo.yaml
+|   +-- driver_ppo_long_training.yaml
 +-- docs/
 |   +-- _config.yml
 |   +-- index.md
@@ -57,7 +59,7 @@ Key files:
 - `Assets/Prefab/Sedan.prefab` - agent prefab with ML-Agents components.
 - `Assets/Scripts/CarController.cs` - agent logic, car control, observations, actions, rewards, and episode reset.
 - `Assets/Scripts/MapController.cs` - randomizes free and occupied parking spots.
-- `Assets/Scripts/GameManager.cs` - loads learning and reward settings from JSON.
+- `Assets/Scripts/GameManager.cs` - loads learning and reward settings from JSON and exposes them through a scene-wide manager.
 - `Assets/Scripts/DriverLearningData.cs` - serializable data model for learning configuration.
 - `AI_LearningData.json` - current reward, episode, and randomization settings.
 
@@ -66,7 +68,7 @@ Key files:
 1. Clone the repository.
 2. Open Unity Hub.
 3. Add the `driving-course-for-ai/` folder as a project. This is the folder that contains `Assets/`, `Packages/`, and `ProjectSettings/`.
-4. Open the project with Unity `2022.3.62f2`.
+4. Open the project with Unity `6000.5.1f1`.
 5. Open `Assets/Scenes/MainScene.unity`.
 6. Press **Play**.
 
@@ -79,7 +81,7 @@ Unity may regenerate C# project files and import assets during the first launch.
 - `Horizontal` - steering, usually left/right arrows or `A`/`D`.
 - `Vertical` - acceleration and reverse, usually up/down arrows or `W`/`S`.
 - `Space` - brake.
-- `R` - reload `AI_LearningData.json` through `GameManager`.
+- `R` - reload `AI_LearningData.json` through `GameManager` and print the applied parameter changes in Unity Console.
 
 If the car does not react while no trained model is assigned, set the `Behavior Parameters` component on the `Sedan` prefab to `Heuristic Only`.
 
@@ -103,7 +105,7 @@ Actions:
 
 Code-level observations:
 
-- Current car speed from `rigidbody.velocity.magnitude`.
+- Current car speed from `rigidbody.linearVelocity.magnitude`.
 - The prefab also uses a Ray Perception Sensor to observe nearby scene objects.
 
 Reward and episode behavior:
@@ -128,25 +130,71 @@ Main configuration sections:
 - `areaData` - rewards and penalties for parking-area trigger zones.
 - `fenceData` - collision penalty for fences.
 
-During Play Mode, you can edit `AI_LearningData.json` and press `R` to reload it without restarting the editor.
+During Play Mode, you can edit `AI_LearningData.json` and press `R` to reload it without restarting the editor. The reload does not show an on-screen notification, but Unity Console logs whether the file changed any learning parameters and lists each applied value change.
+
+`GameManager` uses an early execution order so that ML-Agents can reset agents safely when Play Mode starts. `CarController` and `MapController` resolve the manager through `GameManager.TryGetInstance(...)`, which avoids initialization-order null references after the Unity 6.5 upgrade.
 
 ## Training With ML-Agents
 
-The repository contains a starter PPO training configuration in `config/driver_ppo.yaml`. It targets the `Driver` behavior used by the `Sedan` agent.
+The repository contains two PPO training presets. Both target the `Driver` behavior used by the `Sedan` agent:
 
-Install the ML-Agents CLI in a Python environment:
+- `config/driver_ppo.yaml` - a shorter run for quick iteration.
+- `config/driver_ppo_long_training.yaml` - a long run intended to train for several hours and save evenly spaced checkpoints.
 
-```bash
-python -m pip install mlagents
+Use Python `3.10` for the ML-Agents trainer; the upstream ML-Agents documentation was tested with Python `3.10.12`. This project uses Unity ML-Agents `4.0.3`, which matches the Python package `mlagents==1.1.0`. If you still have an older virtual environment from ML-Agents `0.30.0`, recreate it before training.
+
+```powershell
+winget install --id Python.Python.3.10 --source winget
+```
+
+Create the virtual environment from the repository root, the directory that contains `README.md`, `config/`, and `requirements-mlagents.txt`:
+
+```powershell
+py -3.10 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements-mlagents.txt
 ```
 
 Start training from the repository root:
 
-```bash
-mlagents-learn config/driver_ppo.yaml --run-id driver-ppo
+```powershell
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo
 ```
 
-When the CLI waits for the Unity environment, open `Assets/Scenes/MainScene.unity` and enter Play Mode. ML-Agents will connect to the running scene and begin collecting experience.
+For a longer run intended to last several hours, use:
+
+```powershell
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo_long_training.yaml --run-id driver-ppo-long
+```
+
+The long preset trains for `20,000,000` steps, writes TensorBoard summaries every `50,000` steps, saves a checkpoint every `500,000` steps, and keeps the last `40` checkpoints. Actual runtime depends on Unity simulation speed, the number of parallel map copies in the scene, and hardware.
+
+ML-Agents stores run data in `results/<run-id>/`. If a directory for the same run id already exists, ML-Agents stops before training starts. Pick the command that matches what you want to do:
+
+```powershell
+# Continue the existing run
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo --resume
+
+# Start over and overwrite the existing run
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo --force
+
+# Keep the old run and create a new one
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo-2
+```
+
+The trainer should print:
+
+```text
+Listening on port 5004. Start training by pressing the Play button in the Unity Editor.
+```
+
+When the CLI waits for the Unity environment, open `driving-course-for-ai/Assets/Scenes/MainScene.unity` and enter Play Mode. ML-Agents will connect to the running scene and begin collecting experience.
+
+If your terminal is inside the Unity project directory (`driving-course-for-ai/`), go back to the repository root first:
+
+```powershell
+cd ..
+```
 
 The included starter config:
 
@@ -171,9 +219,20 @@ behaviors:
       extrinsic:
         gamma: 0.99
         strength: 1.0
-    max_steps: 500000
+    keep_checkpoints: 10
+    checkpoint_interval: 100000
+    max_steps: 5000000
     time_horizon: 64
     summary_freq: 10000
+```
+
+The long preset changes only the training duration and logging/checkpoint cadence:
+
+```yaml
+    keep_checkpoints: 40
+    checkpoint_interval: 500000
+    max_steps: 20000000
+    summary_freq: 50000
 ```
 
 Useful training options:
@@ -189,11 +248,11 @@ After training, assign the exported `.onnx` model in the `Behavior Parameters` c
 
 ML-Agents writes TensorBoard summaries to the `results/` directory. Start TensorBoard from the repository root:
 
-```bash
-tensorboard --logdir results
+```powershell
+.\.venv\Scripts\python.exe -m tensorboard.main --logdir results
 ```
 
-Open the local URL printed by TensorBoard, usually `http://localhost:6006/`.
+Open the local URL printed by TensorBoard, usually `http://localhost:6006/`. The `TensorFlow installation not found - running with reduced feature set` message is expected here; ML-Agents logs still display correctly. Press `Ctrl+C` in the TensorBoard terminal to stop it.
 
 The most useful charts while training are:
 
