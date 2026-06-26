@@ -39,6 +39,7 @@ Important Unity packages:
 +-- requirements-mlagents.txt
 +-- config/
 |   +-- driver_ppo.yaml
+|   +-- driver_ppo_long_training.yaml
 +-- docs/
 |   +-- _config.yml
 |   +-- index.md
@@ -133,7 +134,10 @@ During Play Mode, you can edit `AI_LearningData.json` and press `R` to reload it
 
 ## Training With ML-Agents
 
-The repository contains a starter PPO training configuration in `config/driver_ppo.yaml`. It targets the `Driver` behavior used by the `Sedan` agent.
+The repository contains two PPO training presets. Both target the `Driver` behavior used by the `Sedan` agent:
+
+- `config/driver_ppo.yaml` - a shorter run for quick iteration.
+- `config/driver_ppo_long_training.yaml` - a long run intended to train for several hours and save evenly spaced checkpoints.
 
 Use Python 3.9 for the ML-Agents trainer. This project uses Unity ML-Agents `2.0.1`, which matches the Python package `mlagents==0.30.0`. That trainer stack works reliably with Python 3.9 on Windows; Python 3.10+ can run into strict package pins and NumPy wheel issues.
 
@@ -154,6 +158,14 @@ Start training from the repository root:
 ```powershell
 .\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo
 ```
+
+For a longer run intended to last several hours, use:
+
+```powershell
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo_long_training.yaml --run-id driver-ppo-long
+```
+
+The long preset trains for `20,000,000` steps, writes TensorBoard summaries every `50,000` steps, saves a checkpoint every `500,000` steps, and keeps the last `40` checkpoints. On the machine used to verify the setup, `500,000` steps took about 11 minutes, so the full run should be in the range of several hours. Actual runtime depends on Unity simulation speed, the number of parallel map copies in the scene, and hardware.
 
 ML-Agents stores run data in `results/<run-id>/`. If a directory for the same run id already exists, ML-Agents stops before training starts. Pick the command that matches what you want to do:
 
@@ -205,9 +217,20 @@ behaviors:
       extrinsic:
         gamma: 0.99
         strength: 1.0
+    keep_checkpoints: 5
+    checkpoint_interval: 50000
     max_steps: 500000
     time_horizon: 64
     summary_freq: 10000
+```
+
+The long preset changes only the training duration and logging/checkpoint cadence:
+
+```yaml
+    keep_checkpoints: 40
+    checkpoint_interval: 500000
+    max_steps: 20000000
+    summary_freq: 50000
 ```
 
 Useful training options:
@@ -227,7 +250,7 @@ ML-Agents writes TensorBoard summaries to the `results/` directory. Start Tensor
 .\.venv\Scripts\python.exe -m tensorboard.main --logdir results
 ```
 
-Open the local URL printed by TensorBoard, usually `http://localhost:6006/`.
+Open the local URL printed by TensorBoard, usually `http://localhost:6006/`. The `TensorFlow installation not found - running with reduced feature set` message is expected here; ML-Agents logs still display correctly. Press `Ctrl+C` in the TensorBoard terminal to stop it.
 
 The most useful charts while training are:
 

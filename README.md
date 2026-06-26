@@ -60,6 +60,14 @@ Start training from the repository root:
 .\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo.yaml --run-id driver-ppo
 ```
 
+For a longer run intended to last several hours, use the long-training preset:
+
+```powershell
+.\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo_long_training.yaml --run-id driver-ppo-long
+```
+
+This preset trains for `20,000,000` steps, writes TensorBoard summaries every `50,000` steps, saves a checkpoint every `500,000` steps, and keeps the last `40` checkpoints. On the machine used to verify the setup, `500,000` steps took about 11 minutes, so the full run should be in the range of several hours. Actual runtime depends on Unity simulation speed, the number of parallel map copies in the scene, and hardware.
+
 If `results/driver-ppo` already exists, choose one of these options:
 
 ```powershell
@@ -87,4 +95,4 @@ To monitor training in TensorBoard:
 .\.venv\Scripts\python.exe -m tensorboard.main --logdir results
 ```
 
-Then open the local TensorBoard URL printed in the terminal.
+Then open the local TensorBoard URL printed in the terminal, usually `http://localhost:6006/`. The `TensorFlow installation not found - running with reduced feature set` message is expected here; ML-Agents logs still display correctly. Press `Ctrl+C` in the TensorBoard terminal to stop it.
