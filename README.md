@@ -32,7 +32,7 @@ Authors:
 4. Open `Assets/Scenes/MainScene.unity`.
 5. Enter Play Mode.
 
-Manual control is available through the ML-Agents heuristic path: `Horizontal`, `Vertical`, and `Space` for braking. If the car does not respond while no trained model is assigned, set the `Behavior Parameters` component to `Heuristic Only`.
+Manual control is available through the ML-Agents heuristic path: `Horizontal`, `Vertical`, and `Space` for braking. Press `R` during Play Mode to reload `AI_LearningData.json`; Unity Console logs whether the reload changed any learning parameters. If the car does not respond while no trained model is assigned, set the `Behavior Parameters` component to `Heuristic Only`.
 
 ## Documentation
 

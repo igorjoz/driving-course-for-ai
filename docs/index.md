@@ -81,7 +81,7 @@ Unity may regenerate C# project files and import assets during the first launch.
 - `Horizontal` - steering, usually left/right arrows or `A`/`D`.
 - `Vertical` - acceleration and reverse, usually up/down arrows or `W`/`S`.
 - `Space` - brake.
-- `R` - silently reload `AI_LearningData.json` through `GameManager`.
+- `R` - reload `AI_LearningData.json` through `GameManager` and print the applied parameter changes in Unity Console.
 
 If the car does not react while no trained model is assigned, set the `Behavior Parameters` component on the `Sedan` prefab to `Heuristic Only`.
 
@@ -130,7 +130,7 @@ Main configuration sections:
 - `areaData` - rewards and penalties for parking-area trigger zones.
 - `fenceData` - collision penalty for fences.
 
-During Play Mode, you can edit `AI_LearningData.json` and press `R` to reload it without restarting the editor. The reload does not currently show an on-screen notification.
+During Play Mode, you can edit `AI_LearningData.json` and press `R` to reload it without restarting the editor. The reload does not show an on-screen notification, but Unity Console logs whether the file changed any learning parameters and lists each applied value change.
 
 `GameManager` uses an early execution order so that ML-Agents can reset agents safely when Play Mode starts. `CarController` and `MapController` resolve the manager through `GameManager.TryGetInstance(...)`, which avoids initialization-order null references after the Unity 6.5 upgrade.
 
