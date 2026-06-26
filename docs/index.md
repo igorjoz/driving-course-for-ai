@@ -20,16 +20,16 @@ Authors:
 ## Requirements
 
 - Unity Hub.
-- Unity Editor `2022.3.62f2`; this is the version recorded in `ProjectSettings/ProjectVersion.txt`.
-- A platform supported by Unity 2022.3 LTS.
+- Unity Editor `6000.5.1f1`; this is the version recorded in `ProjectSettings/ProjectVersion.txt`.
+- A platform supported by Unity 6.5.
 - Internet access during the first project open, so Unity can restore packages.
 - Optional: Python and the `mlagents` CLI if you want to train the agent from ML-Agents.
 
 Important Unity packages:
 
-- `com.unity.ml-agents` `2.0.1`
-- `com.unity.barracuda` `3.0.0`, installed as an ML-Agents dependency
-- `com.unity.textmeshpro` `3.0.7`
+- `com.unity.ml-agents` `4.0.3`
+- `com.unity.ai.inference` `2.6.1`, installed as an ML-Agents dependency
+- `com.unity.ugui` `2.5.0`
 
 ## Repository Layout
 
@@ -59,7 +59,7 @@ Key files:
 - `Assets/Prefab/Sedan.prefab` - agent prefab with ML-Agents components.
 - `Assets/Scripts/CarController.cs` - agent logic, car control, observations, actions, rewards, and episode reset.
 - `Assets/Scripts/MapController.cs` - randomizes free and occupied parking spots.
-- `Assets/Scripts/GameManager.cs` - loads learning and reward settings from JSON.
+- `Assets/Scripts/GameManager.cs` - loads learning and reward settings from JSON and exposes them through a scene-wide manager.
 - `Assets/Scripts/DriverLearningData.cs` - serializable data model for learning configuration.
 - `AI_LearningData.json` - current reward, episode, and randomization settings.
 
@@ -68,7 +68,7 @@ Key files:
 1. Clone the repository.
 2. Open Unity Hub.
 3. Add the `driving-course-for-ai/` folder as a project. This is the folder that contains `Assets/`, `Packages/`, and `ProjectSettings/`.
-4. Open the project with Unity `2022.3.62f2`.
+4. Open the project with Unity `6000.5.1f1`.
 5. Open `Assets/Scenes/MainScene.unity`.
 6. Press **Play**.
 
@@ -81,7 +81,7 @@ Unity may regenerate C# project files and import assets during the first launch.
 - `Horizontal` - steering, usually left/right arrows or `A`/`D`.
 - `Vertical` - acceleration and reverse, usually up/down arrows or `W`/`S`.
 - `Space` - brake.
-- `R` - reload `AI_LearningData.json` through `GameManager`.
+- `R` - silently reload `AI_LearningData.json` through `GameManager`.
 
 If the car does not react while no trained model is assigned, set the `Behavior Parameters` component on the `Sedan` prefab to `Heuristic Only`.
 
@@ -105,7 +105,7 @@ Actions:
 
 Code-level observations:
 
-- Current car speed from `rigidbody.velocity.magnitude`.
+- Current car speed from `rigidbody.linearVelocity.magnitude`.
 - The prefab also uses a Ray Perception Sensor to observe nearby scene objects.
 
 Reward and episode behavior:
@@ -130,7 +130,9 @@ Main configuration sections:
 - `areaData` - rewards and penalties for parking-area trigger zones.
 - `fenceData` - collision penalty for fences.
 
-During Play Mode, you can edit `AI_LearningData.json` and press `R` to reload it without restarting the editor.
+During Play Mode, you can edit `AI_LearningData.json` and press `R` to reload it without restarting the editor. The reload does not currently show an on-screen notification.
+
+`GameManager` uses an early execution order so that ML-Agents can reset agents safely when Play Mode starts. `CarController` and `MapController` resolve the manager through `GameManager.TryGetInstance(...)`, which avoids initialization-order null references after the Unity 6.5 upgrade.
 
 ## Training With ML-Agents
 
@@ -139,16 +141,16 @@ The repository contains two PPO training presets. Both target the `Driver` behav
 - `config/driver_ppo.yaml` - a shorter run for quick iteration.
 - `config/driver_ppo_long_training.yaml` - a long run intended to train for several hours and save evenly spaced checkpoints.
 
-Use Python 3.9 for the ML-Agents trainer. This project uses Unity ML-Agents `2.0.1`, which matches the Python package `mlagents==0.30.0`. That trainer stack works reliably with Python 3.9 on Windows; Python 3.10+ can run into strict package pins and NumPy wheel issues.
+Use Python `3.10` for the ML-Agents trainer; the upstream ML-Agents documentation was tested with Python `3.10.12`. This project uses Unity ML-Agents `4.0.3`, which matches the Python package `mlagents==1.1.0`. If you still have an older virtual environment from ML-Agents `0.30.0`, recreate it before training.
 
 ```powershell
-winget install --id Python.Python.3.9 --source winget
+winget install --id Python.Python.3.10 --source winget
 ```
 
 Create the virtual environment from the repository root, the directory that contains `README.md`, `config/`, and `requirements-mlagents.txt`:
 
 ```powershell
-& "$env:LocalAppData\Programs\Python\Python39\python.exe" -m venv .venv
+py -3.10 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements-mlagents.txt
 ```
@@ -165,7 +167,7 @@ For a longer run intended to last several hours, use:
 .\.venv\Scripts\python.exe -m mlagents.trainers.learn config\driver_ppo_long_training.yaml --run-id driver-ppo-long
 ```
 
-The long preset trains for `20,000,000` steps, writes TensorBoard summaries every `50,000` steps, saves a checkpoint every `500,000` steps, and keeps the last `40` checkpoints. On the machine used to verify the setup, `500,000` steps took about 11 minutes, so the full run should be in the range of several hours. Actual runtime depends on Unity simulation speed, the number of parallel map copies in the scene, and hardware.
+The long preset trains for `20,000,000` steps, writes TensorBoard summaries every `50,000` steps, saves a checkpoint every `500,000` steps, and keeps the last `40` checkpoints. Actual runtime depends on Unity simulation speed, the number of parallel map copies in the scene, and hardware.
 
 ML-Agents stores run data in `results/<run-id>/`. If a directory for the same run id already exists, ML-Agents stops before training starts. Pick the command that matches what you want to do:
 
@@ -217,9 +219,9 @@ behaviors:
       extrinsic:
         gamma: 0.99
         strength: 1.0
-    keep_checkpoints: 5
-    checkpoint_interval: 50000
-    max_steps: 500000
+    keep_checkpoints: 10
+    checkpoint_interval: 100000
+    max_steps: 5000000
     time_horizon: 64
     summary_freq: 10000
 ```
